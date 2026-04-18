@@ -1,6 +1,6 @@
 import pandas as pd
 
-datf = pd.read_excel('data.xlsx')
+datf = pd.read_excel('data.xlsx', engine='openpyxl')
 
 result = []
 
@@ -18,13 +18,27 @@ for item in trgt:
             found.append(column)
     
     if found:
-        result.append(f"{item} found in columns: {', '.join(found)}")
+        formatted_cols = []
+
+        for col in found:
+            if hasattr(col, 'strftime'):
+                formatted_cols.append(col.strftime('%m-%Y'))
+            else:
+                formatted_cols.append(str(col))
+        
+        result.append(f"{item} found in columns: {', '.join([str(formatted_cols)])}")
+        
     else:
         result.append(f"{item} not found in any column")
 
+
 with open('results.txt', 'w') as f:
+
     for line in result:
         f.write(line + '\n')
-    content = f.read()
-    print(content)
+
+
+with open('results.txt', 'r') as f:
+    print(f.read())
+
     
