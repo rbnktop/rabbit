@@ -106,7 +106,7 @@ def open_review_window(matches, df):
                 for col in df.columns:
                     if m['suggested'] in df[col].astype(str).values:
                         if hasattr(col, 'strftime'):
-                            formatted_cols.append(col.strftime('%m-%Y'))
+                            formatted_cols.append(col.strftime('%Y-%m-%d'))
                         else:
                             formatted_cols.append(str(col))
                 
