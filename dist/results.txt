@@ -1,0 +1,3 @@
+aaa found in columns: ['01-2026', '01-2026']
+sss found in columns: ['01-2026', '05-2026']
+aas found in columns: ['01-2026']
