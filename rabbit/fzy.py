@@ -300,7 +300,7 @@ class FuzzyFinderApp:
         self.input_area = scrolledtext.ScrolledText(main_pad, height=5, width=65)
         self.input_area.pack(fill="y", expand=True, pady=10)
         # End input section
-        
+
         # Primary action button
         self.check_button = self._create_button(main_pad, "Check Similarities", 
                                                command=self.run_similarity_check, 
@@ -384,15 +384,13 @@ class FuzzyFinderApp:
     def _on_check_done(self, results, df):
         """
         Handle completion of matching operation.
-        Sorts results by confidence and opens the review window.
+        Preserves original order from input file and opens the review window.
         
         Args:
             results: List of MultiMatchResult objects
             df: Original DataFrame for date extraction
         """
         self._reset_ui()
-        # Sort by match confidence (lowest scores first for user review)
-        results.sort(key=lambda x: x.candidates[0].score if x.candidates else 0)
         self.open_review_window(results, df)
 
     def _reset_ui(self):
@@ -407,33 +405,22 @@ class FuzzyFinderApp:
     # ==================== Review Window ====================
 
     def open_review_window(self, results, df):
-        """
-        Create interactive window for user to review and confirm/adjust matches.
-        Displays each search item with its top 3 candidate matches.
-        User can select alternatives or skip items.
-        
-        Args:
-            results: List of MultiMatchResult objects with candidates
-            df: DataFrame for later date extraction
-        """
         rw = Toplevel(self.root)
         rw.title("Review Matches")
-        rw.withdraw()  # Hide until fully constructed
-        
-        self.set_window_geometry(rw, width_pct=0.6, height_pct=0.8, min_w=700, min_h=500)
+        rw.withdraw()
+        self.set_window_geometry(rw, width_pct=0.45, height_pct=0.8, min_w=600, min_h=500)
 
-        # Cleanup handler
+        # 1. Sort ASCENDING (0% first) to put lowest scores at the top
+        review_items = sorted(results, key=lambda x: x.candidates[0].score if x.candidates else 0)
+
         def on_close():
             rw.unbind_all("<MouseWheel>")
             rw.destroy()
         rw.protocol("WM_DELETE_WINDOW", on_close)
         
-        # Main container
         container = tk.Frame(rw)
         container.pack(fill="both", expand=True, padx=10, pady=10)
-        self._create_label(container, "Review Items", font_size=11, bold=True).pack(pady=(0, 5))
         
-        # Scrollable area setup
         canvas = tk.Canvas(container, highlightthickness=0)
         scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
         scroll_frame = tk.Frame(canvas)
@@ -444,95 +431,121 @@ class FuzzyFinderApp:
         canvas.configure(yscrollcommand=scrollbar.set)
         rw.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
 
-        # Build match items list
-        selection_map = []  # Stores (original_item, tk.StringVar) pairs
-        for res in results:
-            item_container = tk.Frame(scroll_frame, bd=1, relief="groove", pady=5)
-            item_container.pack(fill="x", pady=2, padx=5)
+        selection_map = {}
+        high_conf_label_placed = False
+        review_label_placed = False
+        
+        for res in review_items:
+            top_score = res.candidates[0].score if res.candidates else 0
+            
+            # --- VISUAL SEPARATORS (Worst First Order) ---
+            # Placement for items needing attention (< 95%)
+            if top_score < 0.95 and not review_label_placed:
+                f = tk.Frame(scroll_frame, bg="#fef9e7", pady=5)
+                f.pack(fill="x", pady=(5, 10))
+                self._create_label(f, "⚠ ATTENTION REQUIRED ", font_size=10, bold=True, fg="#f39c12").pack()
+                review_label_placed = True
+            
+            # Placement for items that are nearly certain (>= 95%)
+            if top_score >= 0.95 and not high_conf_label_placed:
+                f = tk.Frame(scroll_frame, bg="#eafaf1", pady=5)
+                f.pack(fill="x", pady=(20, 10))
+                self._create_label(f, "✓ HIGH CONFIDENCE (Matches > 95%)", font_size=10, bold=True, fg="#27ae60").pack()
+                high_conf_label_placed = True
+            # ----------------------------------------------
+
+            item_container = tk.Frame(scroll_frame, bd=1, relief="groove", pady=8)
+            item_container.pack(fill="x", pady=4, padx=5)
+            
+            # Logic: Auto-select top candidate if score >= 69%
+            is_low_conf = top_score < 0.69
+            initial_val = "NONE" if (is_low_conf or not res.candidates) else res.candidates[0].suggested
+            choice_var = tk.StringVar(value=initial_val)
             
             header = tk.Frame(item_container)
             header.pack(fill="x", padx=5)
+            
+            # Branding and Colors
+            if is_low_conf:
+                prefix = "⚠"
+                color = "#c0392b" # Red
+            elif top_score >= 0.95:
+                prefix = "• "
+                color = "#27ae60" # Green
+            else:
+                prefix = "• "
+                color = "black"
 
-            # Initialize with best match or "NONE" if no candidates
-            choice_var = tk.StringVar(value=res.candidates[0].suggested if res.candidates else "NONE")
+            self._create_label(header, f"{prefix}{res.original}", font_size=10, bold=True, fg=color).pack(side="left")
             
-            # Display original search item
-            self._create_label(header, f"• {res.original}", font_size=10, bold=True).pack(side="left")
-            
-            # Display current selection (updates when changed)
             curr_lbl = tk.Label(header, text=f"→ {choice_var.get()}", fg="#2980b9", font=("Arial", 9, "italic"))
             curr_lbl.pack(side="left", padx=10)
 
-            # Collapsible alternatives panel
-            details = tk.Frame(item_container, bg="#f9f9f9", pady=5)
-            btn = tk.Button(header, text="▼ Alternatives", font=("Arial", 8), relief="flat", fg="gray", 
-                            command=lambda d=details: d.pack(fill="x", padx=20) if not d.winfo_viewable() else d.pack_forget())
-            btn.pack(side="right")
+            opts_frame = tk.Frame(item_container, bg="#fcfcfc")
+            opts_frame.pack(fill="x", padx=10, pady=5)
 
-            # Build radio button options
-            if res.candidates:
-                # Skip option
-                tk.Radiobutton(details, text="Skip", variable=choice_var, value="NONE", bg="#f9f9f9", 
+            # Skip button
+            tk.Radiobutton(opts_frame, text="Skip", variable=choice_var, value="NONE", bg="#fcfcfc",
+                          command=lambda v=choice_var, l=curr_lbl: l.config(text=f"→ {v.get()}")).pack(anchor="w")
+
+            high_tier = [c for c in res.candidates if c.score >= 0.69]
+            low_tier = [c for c in res.candidates if 0.35 <= c.score < 0.69]
+
+            for c in high_tier:
+                tk.Radiobutton(opts_frame, text=f"[{int(c.score*100)}%] {c.suggested}", 
+                              variable=choice_var, value=c.suggested, bg="#fcfcfc",
                               command=lambda v=choice_var, l=curr_lbl: l.config(text=f"→ {v.get()}")).pack(anchor="w")
-                # Match options with confidence scores
-                for c in res.candidates:
-                    tk.Radiobutton(details, text=f"[{int(c.score*100)}%] {c.suggested}", 
-                                  variable=choice_var, value=c.suggested, bg="#f9f9f9", 
+
+            if low_tier:
+                more_frame = tk.Frame(opts_frame, bg="#fcfcfc")
+                for c in low_tier:
+                    tk.Radiobutton(more_frame, text=f"[{int(c.score*100)}%] {c.suggested}", 
+                                  variable=choice_var, value=c.suggested, bg="#fcfcfc",
                                   command=lambda v=choice_var, l=curr_lbl: l.config(text=f"→ {v.get()}")).pack(anchor="w")
-            else: 
-                tk.Label(details, text="No matches found.", fg="red", bg="#f9f9f9").pack(anchor="w")
+                
+                show_btn = tk.Button(opts_frame, text=f"+ Show {len(low_tier)} alternatives (35-69%)", 
+                                     font=("Arial", 8), fg="gray", relief="flat", cursor="hand2")
+                show_btn.config(command=lambda f=more_frame, b=show_btn: [f.pack(fill="x"), b.pack_forget()])
+                show_btn.pack(anchor="w", padx=20)
             
-            selection_map.append((res.original, choice_var))
+            selection_map[res.original] = choice_var
 
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Footer with confirm button and progress bar
         footer = tk.Frame(rw, height=80)
-        footer.pack(side="bottom")
+        footer.pack(side="bottom", fill="x")
         progress_bar = self._create_progress_bar(footer)
         
-        def run_confirm_bt():
-            """Start final processing of confirmed selections."""
+        def run_confirm():
             confirm_btn.config(state="disabled")
-            self._show_progress_bar(progress_bar, pady=10)
-            confirm_btn.config(text="Confirming...")
-            threading.Thread(target=self._final_task, args=(selection_map, df, rw, progress_bar), daemon=True).start()
+            self._show_progress_bar(progress_bar)
+            threading.Thread(target=self._final_task, args=(selection_map, results, df, rw, progress_bar), daemon=True).start()
 
-        confirm_btn = self._create_button(footer, "Confirm Selections", command=run_confirm_bt, fg='#50906b', height=2)
-        confirm_btn.pack(padx=20, pady=10)
-        
-        rw.deiconify()  # Show window now that construction is complete
-
+        confirm_btn = self._create_button(footer, "Confirm Selections", command=run_confirm, fg='#27ae60', height=2)
+        confirm_btn.pack(pady=10)
+        rw.deiconify()
     # ==================== Final Processing ====================
 
-    def _final_task(self, selection_map, df, win, progress_bar):
-        """
-        Extract dates for confirmed selections and prepare results for display.
-        Runs in background thread to keep UI responsive.
-        
-        Args:
-            selection_map: List of (original_item, tk.StringVar) tuples with user selections
-            df: DataFrame for date extraction
-            win: Review window to close after processing
-            progress_bar: Progress bar to update during processing
-        """
-        progress_bar['maximum'] = len(selection_map)
+    def _final_task(self, selection_map, original_results, df, win, progress_bar):
+        progress_bar['maximum'] = len(original_results)
         final_results = []
         
-        for i, (orig, var) in enumerate(selection_map):
-            choice = var.get()
-            match_display = choice if choice != "NONE" else "---"
-            # Extract date for the selected match (or "No date found" if skipped)
-            date = extract_dates_for_match(df, choice) if choice != "NONE" else "No date found"
+        # We loop through original_results (which is in .txt order)
+        # and pull the user's choices from the selection_map dictionary.
+        for i, res in enumerate(original_results):
+            choice_var = selection_map.get(res.original)
+            choice = choice_var.get() if choice_var else "NONE"
             
-            final_results.append((orig, match_display, date))
+            match_display = choice if choice != "NONE" else "---"
+            date = extract_dates_for_match(df, choice) if choice != "NONE" else "FOTO"
+            
+            final_results.append((res.original, match_display, date))
             self.root.after(0, lambda v=i+1: progress_bar.config(value=v))
         
-        # Update UI safely from thread
         self.root.after(0, lambda: win.unbind_all("<MouseWheel>"))
-        self.root.after(0, lambda: [self.show_results(final_results), win.destroy()])
-
+        self.root.after(0, lambda: [self.show_results(final_results), win.destroy()]) 
+    
     # ==================== Results Display ====================
 
     def show_results(self, data):
