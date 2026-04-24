@@ -1,6 +1,3 @@
-Your GitHub project deserves a high-quality README.md. I have prepared one that highlights the features, technical stack, and includes a clear guide for the end-user.
-
-I have also included the PyInstaller instructions and a placeholder for the Fuzzy Rabbit icon you just created.
 📂 Fuzzy Rabbit - Global Responsive Edition
 
 Fuzzy Rabbit is a high-performance desktop utility designed to reconcile messy, inconsistent text lists with structured Excel data. Using advanced fuzzy string matching algorithms, it identifies the most likely matches, allows for human review, and extracts associated temporal data (dates) from spreadsheet headers.
