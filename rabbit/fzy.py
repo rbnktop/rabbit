@@ -453,7 +453,7 @@ class FuzzyFinderApp:
         rw = Toplevel(self.root)
         rw.title("Review Matches")
         rw.withdraw()
-        self.set_window_geometry(rw, width_pct=0.45, height_pct=0.8, min_w=600, min_h=500)
+        self.set_window_geometry(rw, width_pct=0.45, height_pct=0.8)
 
         # Retain original list order, no sorting applied
         review_items = results 
@@ -484,8 +484,8 @@ class FuzzyFinderApp:
         for res in review_items:
             top_score = res.candidates[0].score if res.candidates else 0.0
 
-            item_container = tk.Frame(scroll_frame, bd=1, relief="groove", pady=8)
-            item_container.pack(fill="x", pady=4, padx=5)
+            item_container = tk.Frame(scroll_frame, bd=1, relief="groove", pady=8, padx=20)
+            item_container.pack(pady=6, padx=10,)
             
             # Logic: Auto-select top candidate if score >= 69%
             is_low_conf = top_score < 0.69
@@ -506,16 +506,16 @@ class FuzzyFinderApp:
             self._create_label(item_container, f"• {res.original}", font_size=11, bold=True, fg=color).pack(anchor="center", pady=(0, 5))
 
             # Centralized options frame
-            opts_frame = tk.Frame(item_container, bg="#fcfcfc")
+            opts_frame = tk.Frame(item_container)
             opts_frame.pack(pady=5)
 
             # Centralized Option to skip item entirely
-            tk.Radiobutton(opts_frame, text="Skip", variable=choice_var, value="NONE", bg="#fcfcfc").pack(anchor="center", pady=2)
+            tk.Radiobutton(opts_frame, text="Skip", variable=choice_var, value="NONE").pack(anchor="center", pady=2)
 
             # Centralized Candidates
             for c in res.candidates:
                 tk.Radiobutton(opts_frame, text=f"[{int(c.score*100)}%] {c.suggested}", 
-                              variable=choice_var, value=c.suggested, bg="#fcfcfc").pack(anchor="center", pady=2)
+                              variable=choice_var, value=c.suggested).pack(anchor="center", pady=2)
             
             selection_map[res.original] = choice_var
 
@@ -580,12 +580,12 @@ class FuzzyFinderApp:
         """
         res_win = Toplevel(self.root)
         res_win.title("Fuzzy Rabbit - Results")
-        self.set_window_geometry(res_win, width_pct=0.75, height_pct=0.7)
+        self.set_window_geometry(res_win, width_pct=0.45, height_pct=0.6)
 
         self._create_label(res_win, "RESULTS", font_size=16, bold=True).pack(pady=10)
 
         table_frame = tk.Frame(res_win)
-        table_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        table_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
         columns = ("original", "match", "date")
         tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="browse")
@@ -594,15 +594,15 @@ class FuzzyFinderApp:
         tree.heading("match", text="MATCH")
         tree.heading("date", text="DATE")
 
-        tree.column("original", anchor="w", width=250)
-        tree.column("match", anchor="w", width=250)
-        tree.column("date", anchor="center", width=200)
+        tree.column("original", anchor="w", width=160, stretch=True)
+        tree.column("match", anchor="w", width=160, stretch=True)
+        tree.column("date", anchor="center", width=85, stretch=False)
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
         
         style = ttk.Style()
-        style.configure("Treeview", font=("Arial", 10), rowheight=28)
+        style.configure("Treeview", font=("Arial", 10), rowheight=25)
         tree.tag_configure('oddrow', background='#f7f7f7')
         tree.tag_configure('evenrow', background='white')
 
@@ -613,7 +613,7 @@ class FuzzyFinderApp:
         tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        footer = tk.Frame(res_win, pady=20)
+        footer = tk.Frame(res_win, pady=10)
         footer.pack(fill="x")
 
         def copy_dates_bt() -> None:
