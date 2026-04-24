@@ -1,0 +1,23 @@
+# PyInstaller Folders
+build/
+dist/
+*.spec
+
+# Python Cache
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Local Data / Temp Files
+*.xlsx
+*.json
+lista.txt
+
+# System Files
+.DS_Store
+Thumbs.db

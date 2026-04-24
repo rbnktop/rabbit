@@ -5,6 +5,8 @@ import json
 import engine as engine
 from views import MainWindow, ReviewWindow, ResultsWindow
 
+
+
 class AppController:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -121,7 +123,7 @@ class AppController:
         """Prevents crashes if the review window is closed mid-process."""
         if self.review_window and hasattr(self.review_window, 'update_progress'):
             self.review_window.update_progress(value)
-    
+
     def save_json_file(self, data: list):
         """Saves the acquisition data as a JSON dictionary."""
         path = filedialog.asksaveasfilename(

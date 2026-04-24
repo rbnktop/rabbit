@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, scrolledtext, ttk, Toplevel
 from typing import List, Tuple, Any, Dict, Union
 
+
 class BaseWindow:
     """Utility class for common window operations to keep UI code DRY (Don't Repeat Yourself)."""
     
@@ -73,15 +74,12 @@ class MainWindow(BaseWindow):
         self.root = root
         self.controller = controller
         self.root.title("Fuzzy Rabbit")
+        self.set_window_geometry(self.root, width_pct=0.4, height_pct=0.7)
         
         self.excel_input_var = tk.StringVar()
         self.txt_path_var = tk.StringVar()
         self._build_ui()
-        try:
-            self.root.iconbitmap("fuzzyicon.ico")
-        except:
-            pass
-        self.set_window_geometry(self.root, width_pct=0.4, height_pct=0.7)
+        
 
     def _build_ui(self):
         """Constructs the main window widgets."""
@@ -131,12 +129,6 @@ class ReviewWindow(BaseWindow):
         
         self.window = Toplevel(self.root)
         self.window.title("Review Matches")
-
-        try:
-            self.root.iconbitmap("fuzzyicon.ico")
-        except:
-            pass
-
         self.set_window_geometry(self.window, width_pct=0.45, height_pct=0.8)
         
         # Override the native OS 'X' button to ensure clean background threading cleanup
@@ -319,7 +311,7 @@ class ResultsWindow(BaseWindow):
                 "date": item[2]
             })
         self.controller.save_json_file(export_list)
-        self.copy_btn.config(text="Done ✓", fg="#27ae60")
+        self.json_btn.config(text="Done ✓", fg="#27ae60")
     
     def _copy_dates(self) -> None:
         """Extracts only the date column and copies it to the system clipboard."""

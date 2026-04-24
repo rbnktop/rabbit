@@ -4,7 +4,6 @@ from typing import List, Optional, Callable
 from models import MatchCandidate, MultiMatchResult
 import unicodedata
 
-import unicodedata
 
 def normalize_text(text: str) -> str:
     """Removes accents, converts to lowercase, and strips extra whitespace."""
