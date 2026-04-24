@@ -101,7 +101,6 @@ def extract_dates_for_match(df: pd.DataFrame, match_value: str) -> str:
                 continue
     
     if found_dates:
-        # Formats to strictly DD/MM/YYYY
         return max(found_dates).strftime("%d/%m/%Y")
     
     return "FOTO"

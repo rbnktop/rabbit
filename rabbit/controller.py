@@ -136,7 +136,6 @@ class AppController:
 
         try:
             with open(path, 'w', encoding='utf-8') as f:
-                # ensure_ascii=False keeps your Portuguese characters readable in the file
                 json.dump(data, f, ensure_ascii=False, indent=4)
             messagebox.showinfo("Success", "File saved successfully!")
         except Exception as e:

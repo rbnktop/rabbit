@@ -312,7 +312,7 @@ class ResultsWindow(BaseWindow):
             })
         self.controller.save_json_file(export_list)
         self.json_btn.config(text="Done ✓", fg="#27ae60")
-    
+        
     def _copy_dates(self) -> None:
         """Extracts only the date column and copies it to the system clipboard."""
         just_dates = "\n".join([item[2] for item in self.data])
