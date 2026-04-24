@@ -1,2 +1,5 @@
 .venv/
 __pycache__/
+.esse.json
+.lista.txt
+.ENCARTES_25.xlsx
