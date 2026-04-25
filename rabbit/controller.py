@@ -16,16 +16,6 @@ class AppController:
         self.original_results = []
         self.review_window = None
 
-    def _reset_ui(self):
-        """Restores the UI to its ready state."""
-        self.processing = False
-        self.ui.check_button.config(text="Check Similarities", state="normal")
-        self.ui.hide_progress()
-
-    def _update_main_progress(self, current: int):
-        """Type-safe helper for the main progress bar."""
-        self.ui.progress_bar.config(value=current)
-
     def select_excel(self):
         path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
         if path:
@@ -59,13 +49,34 @@ class AppController:
         self.ui.show_progress()
         
         threading.Thread(target=self._exec_check, args=(e_path, t_content), daemon=True).start()
+    
+    def process_review_selections(self, selections: dict):
+        """Starts the final date extraction in a background thread."""
+        threading.Thread(target=self._compile_final_data, args=(selections,), daemon=True).start()
+    
+    def save_json_file(self, data: list):
+        """Saves the acquisition data as a JSON dictionary."""
+        path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json")],
+            title="Send this to Swift Hawk"
+        )
+        if not path:
+            return
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            messagebox.showinfo("Success", "File saved successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not save file: {e}")
 
     def _exec_check(self, path: str, content: str):
         try:
             self.current_df = engine.load_excel_data(path)
-            items = engine.parse_search_items(content)
             pool = engine.build_excel_pool(self.current_df)
-            
+            items = engine.parse_search_items(content)
+
             self.root.after(0, lambda: self.ui.progress_bar.config(maximum=len(items)))
             
             results = engine.find_smart_matches(
@@ -76,7 +87,6 @@ class AppController:
             self.root.after(0, self._on_check_done, results)
             
         except Exception as e:
-            # Thread-safe error reporting
             self.root.after(0, lambda err=e : self._handle_error(err))
 
     def _handle_error(self, err: Exception):
@@ -88,10 +98,6 @@ class AppController:
         self.original_results = results 
         self.review_window = ReviewWindow(self.root, self, results)
 
-    def process_review_selections(self, selections: dict):
-        """Starts the final date extraction in a background thread."""
-        threading.Thread(target=self._compile_final_data, args=(selections,), daemon=True).start()
-
     def _compile_final_data(self, selections: dict):
         final_data = []
         
@@ -101,12 +107,12 @@ class AppController:
             # Logic requirement: items in results must be in original input order
             if choice != "NONE" and self.current_df is not None:
                 match_display = choice
-                date = engine.extract_dates_for_match(self.current_df, choice)
+                date_display = engine.extract_dates_for_match(self.current_df, choice)
             else:
-                match_display = "---"
-                date = "FOTO"
+                match_display = "====NaN===="
+                date_display = "FOTO"
             
-            final_data.append((res.original, match_display, date))
+            final_data.append((res.original, match_display, date_display))
             
             # Update the ReviewWindow progress bar if it exists
             if self.review_window is not None:
@@ -124,19 +130,11 @@ class AppController:
         if self.review_window and hasattr(self.review_window, 'update_progress'):
             self.review_window.update_progress(value)
 
-    def save_json_file(self, data: list):
-        """Saves the acquisition data as a JSON dictionary."""
-        path = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            filetypes=[("JSON", "*.json")],
-            title="Send this to Swift Hawk"
-        )
-        if not path:
-            return
+    def _reset_ui(self):
+        self.processing = False
+        self.ui.check_button.config(text="Check Similarities", state="normal")
+        self.ui.hide_progress()
 
-        try:
-            with open(path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-            messagebox.showinfo("Success", "File saved successfully!")
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not save file: {e}")
+    def _update_main_progress(self, current: int):
+        """Type-safe helper for the main progress bar."""
+        self.ui.progress_bar.config(value=current)
