@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, scrolledtext, ttk, Toplevel
+from tkinter import scrolledtext, ttk, Toplevel
 from typing import List, Tuple, Any, Dict, Union
 
 
@@ -154,14 +154,14 @@ class ReviewWindow(BaseWindow):
             opts_frame = tk.Frame(item_container)
             opts_frame.pack()
 
-            tk.Radiobutton(opts_frame, text="Skip", variable=choice_var, value="NONE", font=("Arial", 10)).pack(anchor="center", pady=2)
+            tk.Radiobutton(opts_frame, text="Skip", variable=choice_var, value="NONE", font=("Arial", 10)).pack(anchor="w", pady=2)
 
             for c in res.candidates:
                 c_date = getattr(c, 'date', 'N/A')
                 display_label = f"[{int(c.score*100)}%] {c.suggested}  >  {c_date}"
                 
                 # The 'value' remains purely the text so downstream logic doesn't break
-                tk.Radiobutton(opts_frame, text=display_label, variable=choice_var, value=c.suggested, font=("Arial", 10)).pack(anchor="center", pady=2)
+                tk.Radiobutton(opts_frame, text=display_label, variable=choice_var, value=c.suggested, font=("Arial", 10)).pack(anchor="w", pady=2)
             
             # Map the original search item to the Tkinter StringVar containing the choice
             self.selection_map[res.original] = choice_var

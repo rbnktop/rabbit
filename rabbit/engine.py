@@ -1,6 +1,6 @@
 import pandas as pd
-from rapidfuzz import fuzz, process
-from typing import List, Optional, Callable
+from rapidfuzz import fuzz
+from typing import List
 from models import MatchCandidate, MultiMatchResult
 import unicodedata
 
@@ -15,10 +15,10 @@ def normalize_text(text: str) -> str:
     return "".join([c for c in nksfd if not unicodedata.combining(c)])
 
 def get_match_score(original, candidate):
-    clean_org = normalize_text(original)
+    clean_orig = normalize_text(original)
     clean_cand = normalize_text(candidate)
 
-    score = fuzz.token_sort_ratio(clean_org, clean_cand) / 100.0
+    score = fuzz.token_sort_ratio(clean_orig, clean_cand) / 100.0
     return score
 
 def load_excel_data(path: str) -> pd.DataFrame:
@@ -33,7 +33,7 @@ def build_excel_pool(df: pd.DataFrame) -> dict:
     
     for col in df.columns:
         try:
-            recent_date = pd.to_datetime(col)
+            recent_date = pd.to_datetime(col, dayfirst=True)
         except:
             continue
 
@@ -69,7 +69,7 @@ def find_smart_matches(items, pool_map, threshold=0.49, auto_approve=0.98, progr
         best_candidates.sort(key=lambda x: x.score, reverse=True)
         candidates_list = best_candidates[:5] 
         results.append(MultiMatchResult(original=item, candidates=candidates_list))
-        
+
         if progress_callback:
             progress_callback(i + 1, len(items))
 
@@ -87,7 +87,7 @@ def extract_dates_for_match(df: pd.DataFrame, match_value: str) -> str:
         
         if column_data_clean.eq(match_str).any():
             try: 
-                found_dates.append(pd.to_datetime(col_name))
+                found_dates.append(pd.to_datetime(col_name, dayfirst=True))
             except: 
                 continue
     

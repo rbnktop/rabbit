@@ -6,7 +6,6 @@ import engine as engine
 from views import MainWindow, ReviewWindow, ResultsWindow
 
 
-
 class AppController:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -109,7 +108,7 @@ class AppController:
                 match_display = choice
                 date_display = engine.extract_dates_for_match(self.current_df, choice)
             else:
-                match_display = "====NaN===="
+                match_display = " Num tem "
                 date_display = "FOTO"
             
             final_data.append((res.original, match_display, date_display))
